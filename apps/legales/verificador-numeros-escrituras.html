@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificador de Números — Escrituras · The Group</title>
+<style>
+  :root{
+    --navy:#2F4A3A; --teal:#3C6350; --lav:#C9A24B;
+    --rojo:#C0392B; --amar:#D19A1E; --verde:#2F7D57;
+    --bg:#F4F5F2; --card:#FFFFFF; --line:#E2E6E0; --muted:#5F6B60;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--navy);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{background:var(--navy);color:#fff;padding:28px 24px;border-bottom:4px solid var(--lav);}
+  header h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:26px;letter-spacing:.3px}
+  header p{margin:6px 0 0;color:var(--lav);font-size:14px}
+  .wrap{max-width:920px;margin:0 auto;padding:24px}
+  .drop{display:block;background:var(--card);border:2px dashed var(--lav);border-radius:16px;padding:48px 24px;text-align:center;
+    cursor:pointer;transition:.15s;}
+  .drop:hover,.drop.over{border-color:var(--teal);background:#fbfbfe}
+  .drop h2{margin:0 0 6px;font-size:19px;font-weight:600}
+  .drop p{margin:0;color:var(--muted);font-size:14px}
+  .drop .ico{font-size:42px;margin-bottom:10px}
+  input[type=file]{display:none}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+  .card .n{font-size:30px;font-weight:700;line-height:1}
+  .card .l{font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
+  .card.r .n{color:var(--rojo)} .card.y .n{color:var(--amar)} .card.g .n{color:var(--verde)}
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+  .sec h3{margin:0 0 14px;font-size:16px;font-family:Georgia,serif;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap}
+  .tag.r{background:var(--rojo)} .tag.y{background:var(--amar)}
+  .mono{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+  .btn{display:inline-block;background:var(--teal);color:#fff;border:none;border-radius:10px;
+    padding:13px 22px;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:hover{background:#294235} .btn:disabled{background:#bbb;cursor:default}
+  .ok{color:var(--verde);font-weight:600}
+  .note{font-size:13px;color:var(--muted);line-height:1.6;margin-top:8px}
+  .hidden{display:none}
+  .filename{font-size:14px;color:var(--teal);font-weight:600;margin-bottom:14px}
+  mark{background:#fff3b0;padding:0 2px;border-radius:3px}
+  mark.r{background:#f5c6c0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Verificador de Números · Escrituras</h1>
+  <p>The Group Panamá — controla que los números en letras coincidan con las cifras. No corrige nada, solo marca dónde.</p>
+</header>
+
+<div class="wrap">
+  <label class="drop" id="drop">
+    <div class="ico">📄</div>
+    <h2>Arrastrá tu escritura acá, o hacé clic para elegirla</h2>
+    <p>Archivo Word (.docx). Todo se procesa en tu computadora — nada se sube a internet.</p>
+    <input type="file" id="file" accept=".docx">
+  </label>
+  <div id="results" class="hidden"></div>
+</div>
+
+<script>
+// ===================== LECTURA ZIP =====================
+function u32(b,o){return (b[o]|b[o+1]<<8|b[o+2]<<16|b[o+3]<<24)>>>0;}
+function u16(b,o){return b[o]|b[o+1]<<8;}
+function unzip(buf){
+  const b=new Uint8Array(buf);
+  let eocd=-1;
+  for(let i=b.length-22;i>=0;i--){ if(u32(b,i)===0x06054b50){eocd=i;break;} }
+  if(eocd<0) throw new Error('No parece un .docx válido');
+  const count=u16(b,eocd+10); let cd=u32(b,eocd+16);
+  const entries=[];
+  for(let i=0;i<count;i++){
+    const method=u16(b,cd+10),crc=u32(b,cd+16),csize=u32(b,cd+20),usize=u32(b,cd+24);
+    const nlen=u16(b,cd+28),elen=u16(b,cd+30),clen=u16(b,cd+32),lho=u32(b,cd+42);
+    const name=new TextDecoder().decode(b.slice(cd+46,cd+46+nlen));
+    const lnlen=u16(b,lho+26),lelen=u16(b,lho+28);
+    const dataStart=lho+30+lnlen+lelen;
+    const comp=b.slice(dataStart,dataStart+csize);
+    entries.push({name,method,crc,csize,usize,comp});
+    cd+=46+nlen+elen+clen;
+  }
+  return entries;
+}
+async function entryText(e){
+  if(e.method===0) return new TextDecoder().decode(e.comp);
+  const ds=new DecompressionStream('deflate-raw');
+  const wr=ds.writable.getWriter(); wr.write(e.comp); wr.close();
+  const ab=await new Response(ds.readable).arrayBuffer();
+  return new TextDecoder().decode(new Uint8Array(ab));
+}
+
+// ===================== PARSER ESPAÑOL =====================
+const W={cero:0,uno:1,un:1,una:1,unos:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,
+diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,'dieciséis':16,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,
+veinte:20,veintiuno:21,'veintiún':21,veintiun:21,'veintidós':22,veintidos:22,'veintitrés':23,veintitres:23,veinticuatro:24,veinticinco:25,'veintiséis':26,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,
+treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90,
+cien:100,ciento:100,doscientos:200,doscientas:200,trescientos:300,trescientas:300,cuatrocientos:400,cuatrocientas:400,quinientos:500,quinientas:500,seiscientos:600,seiscientas:600,setecientos:700,setecientas:700,ochocientos:800,ochocientas:800,novecientos:900,novecientas:900};
+const MIL=new Set(['mil']);
+const MILL=new Set(['millon','millón','millones']);
+const NUMWORD=new Set(Object.keys(W));
+const CONNECT=new Set([...NUMWORD,...MIL,...MILL,'y','con','de','del','centavos','centavo','dolares','dólares','dolar','dólar']);
+function norm(t){return t.toLowerCase().replace(/[.,;:()]/g,'').trim();}
+function cardinal(tokens){
+  let total=0,cur=0,any=false;
+  for(const t of tokens){
+    if(MIL.has(t)){cur=(cur===0?1:cur);total+=cur*1000;cur=0;any=true;}
+    else if(MILL.has(t)){cur=(cur===0?1:cur);total+=cur*1000000;cur=0;any=true;}
+    else if(W[t]!==undefined){cur+=W[t];any=true;}
+  }
+  return any?total+cur:null;
+}
+function digitConcat(tokens){let s='';for(const t of tokens){if(W[t]===undefined||W[t]>9)return null;s+=W[t];}return s.length?parseInt(s,10):null;}
+function hasNumberWord(tokens){return tokens.some(t=>NUMWORD.has(t)||MIL.has(t)||MILL.has(t));}
+function parseNumeral(raw){
+  if(raw.includes('%')) return {kind:'seg'};
+  let s=raw.replace(/US\$?/gi,'').replace(/\$/g,'').replace(/\s/g,'');
+  if(!/^[\d.,]+$/.test(s)) return {kind:'seg'};
+  const nc=s.replace(/,/g,'');
+  if((nc.match(/\./g)||[]).length>1) return {kind:'amb'};
+  const v=parseFloat(nc);
+  if(isNaN(v)) return {kind:'amb'};
+  return {kind:'num',value:v,integer:Number.isInteger(v)};
+}
+function wordsBefore(plain,parenStart){
+  const before=plain.slice(0,parenStart);
+  const toks=before.split(/\s+/).filter(Boolean);
+  const collected=[];
+  for(let i=toks.length-1;i>=0;i--){const n=norm(toks[i]);if(n==='')continue;if(CONNECT.has(n))collected.unshift(n);else break;}
+  return collected;
+}
+function compare(tokens,numeralRaw){
+  const num=parseNumeral(numeralRaw);
+  if(num.kind==='seg') return {status:'skip'};
+  if(num.kind==='amb') return {status:'review',reason:'cifra ambigua o mal escrita (revisá el formato)'};
+  const clean=tokens.filter(t=>CONNECT.has(t));
+  if(!hasNumberWord(clean)) return {status:'skip'};   // sin número real en palabras → no se compara
+  if(num.integer===false){
+    if(clean.includes('con')){
+      const idx=clean.indexOf('con');
+      const ent=cardinal(clean.slice(0,idx)), cent=cardinal(clean.slice(idx+1));
+      if(ent!==null&&cent!==null){const val=ent+cent/100;
+        return {status:Math.abs(val-num.value)<0.005?'match':'mismatch',wordVal:val,numVal:num.value};}
+    }
+    const c=cardinal(clean);
+    return {status:(c!==null&&Math.abs(c-num.value)<0.005)?'match':'mismatch',wordVal:c,numVal:num.value};
+  }
+  const cands=new Set();
+  for(let i=0;i<clean.length;i++){const c=cardinal(clean.slice(i));if(c!==null)cands.add(c);}
+  const dc=digitConcat(clean);if(dc!==null)cands.add(dc);
+  return {status:cands.has(num.value)?'match':'mismatch',wordVal:cardinal(clean),numVal:num.value};
+}
+
+// ===================== TEXTO + MAPA DE POSICIONES =====================
+function extractPieces(xml){
+  const pieces=[]; let plain='';
+  const re=/<w:t[^>]*>([\s\S]*?)<\/w:t>|<\/w:p>|<w:br[^>]*\/>|<w:tab[^>]*\/>/g;
+  let m;
+  while((m=re.exec(xml))){
+    if(m[1]!==undefined){
+      const openLen=m[0].indexOf('>')+1;
+      const xStart=m.index+openLen, inner=m[1];
+      pieces.push({pStart:plain.length, pEnd:plain.length+inner.length, tStart:m.index, xStart, xEnd:xStart+inner.length});
+      plain+=inner;
+    } else { plain+=' \n '; }
+  }
+  return {plain,pieces};
+}
+function decodeEnt(s){return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");}
+
+// ===================== ANÁLISIS =====================
+function analizar(xml){
+  const {plain,pieces}=extractPieces(xml);
+  let match=0,skip=0; const flags=[];
+  for(const m of plain.matchAll(/\(([^)]*\d[^)]*)\)/g)){
+    const numeral=m[1].trim();
+    const toks=wordsBefore(plain,m.index);
+    const r=compare(toks,numeral);
+    if(r.status==='match'){match++;continue;}
+    if(r.status==='skip'){skip++;continue;}
+    // rango exacto de la FRASE en palabras
+    let fEnd=m.index; while(fEnd>0 && /\s/.test(plain[fEnd-1])) fEnd--;
+    let fStart=fEnd; const k=toks.length; let count=0,i=fEnd;
+    while(i>0 && count<k){
+      while(i>0 && /\s/.test(plain[i-1])) i--;
+      let j=i; while(j>0 && !/\s/.test(plain[j-1])) j--;
+      fStart=j; i=j; count++;
+    }
+    const ranges=[];
+    if(r.status==='mismatch' && fStart<fEnd) ranges.push({s:fStart,e:fEnd,color:'red'});
+    const numStart=m.index+m[0].indexOf('(')+1, numEnd=numStart+numeral.length;
+    ranges.push({s:numStart,e:numEnd,color:r.status==='mismatch'?'red':'yellow'});
+    flags.push({numeral,frase:decodeEnt(plain.slice(fStart,fEnd)),status:r.status,reason:r.reason,wordVal:r.wordVal,numVal:r.numVal,ranges});
+  }
+  return {plain,pieces,match,skip,flags};
+}
+
+// ===================== MARCADO POSICIONAL =====================
+function findRunOpen(s,pos){let i=pos;while(true){i=s.lastIndexOf('<w:r',i-1);if(i===-1)return -1;const nx=s[i+4];if(nx==='>'||nx===' ')return i;}}
+function marcar(xml,pieces,flags){
+  const porPieza=new Map();
+  for(const rg of flags.flatMap(f=>f.ranges)){
+    for(const p of pieces){
+      const a=Math.max(rg.s,p.pStart), b=Math.min(rg.e,p.pEnd);
+      if(a<b){
+        const xa=p.xStart+(a-p.pStart), xb=p.xStart+(b-p.pStart);
+        const cur=porPieza.get(p)||{p,xa:Infinity,xb:-Infinity,color:'yellow'};
+        cur.xa=Math.min(cur.xa,xa); cur.xb=Math.max(cur.xb,xb);
+        if(rg.color==='red') cur.color='red';
+        porPieza.set(p,cur);
+      }
+    }
+  }
+  const items=[...porPieza.values()].sort((A,B)=>B.p.tStart-A.p.tStart);
+  const sp='<w:t xml:space="preserve">';
+  for(const it of items){
+    const P=it.p;
+    const runStart=findRunOpen(xml,P.tStart);
+    const runSeg=xml.slice(runStart,P.tStart);
+    let rpr='';const rp=runSeg.indexOf('<w:rPr>');if(rp!==-1){const rpe=runSeg.indexOf('</w:rPr>')+8;rpr=runSeg.slice(rp,rpe);}
+    const rprHl=rpr?rpr.replace('</w:rPr>',`<w:highlight w:val="${it.color}"/></w:rPr>`):`<w:rPr><w:highlight w:val="${it.color}"/></w:rPr>`;
+    const tOpen=xml.slice(P.tStart,P.xStart);
+    const prefix=xml.slice(P.xStart,it.xa), mid=xml.slice(it.xa,it.xb), suffix=xml.slice(it.xb,P.xEnd);
+    const runOpen=xml.slice(runStart,P.tStart);
+    const runClose=xml.indexOf('</w:r>',P.xEnd)+6;
+    const nuevo=`${runOpen}${tOpen}${prefix}</w:t></w:r><w:r>${rprHl}${sp}${mid}</w:t></w:r><w:r>${rpr}${sp}${suffix}</w:t></w:r>`;
+    xml=xml.slice(0,runStart)+nuevo+xml.slice(runClose);
+  }
+  return xml;
+}
+
+// ===================== ESCRITURA ZIP =====================
+const CRCT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(bytes){let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++)c=CRCT[(c^bytes[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function te(s){return new TextEncoder().encode(s);}
+function w16(a,v){a.push(v&0xFF,(v>>8)&0xFF);}
+function w32(a,v){a.push(v&0xFF,(v>>8)&0xFF,(v>>16)&0xFF,(v>>24)&0xFF);}
+function buildZip(entries){
+  const local=[],central=[];let offset=0;
+  for(const e of entries){
+    const nameB=te(e.name);e.lho=offset;
+    w32(local,0x04034b50);w16(local,20);w16(local,0);w16(local,e.method);w16(local,0);w16(local,0);
+    w32(local,e.crc);w32(local,e.csize);w32(local,e.usize);w16(local,nameB.length);w16(local,0);
+    for(const b of nameB)local.push(b);for(const b of e.comp)local.push(b);offset=local.length;
+  }
+  for(const e of entries){
+    const nameB=te(e.name);
+    w32(central,0x02014b50);w16(central,20);w16(central,20);w16(central,0);w16(central,e.method);w16(central,0);w16(central,0);
+    w32(central,e.crc);w32(central,e.csize);w32(central,e.usize);
+    w16(central,nameB.length);w16(central,0);w16(central,0);w16(central,0);w16(central,0);w32(central,0);w32(central,e.lho);
+    for(const b of nameB)central.push(b);
+  }
+  const cdStart=local.length,cdLen=central.length;
+  const eocd=[];w32(eocd,0x06054b50);w16(eocd,0);w16(eocd,0);w16(eocd,entries.length);w16(eocd,entries.length);
+  w32(eocd,cdLen);w32(eocd,cdStart);w16(eocd,0);
+  return Uint8Array.from([...local,...central,...eocd]);
+}
+
+// ===================== ORQUESTA =====================
+let RAW_ENTRIES=null, BASE_XML=null, PIECES=null, FLAGS=[], FILENAME='escritura.docx';
+async function procesar(file){
+  FILENAME=file.name;
+  const buf=await file.arrayBuffer();
+  RAW_ENTRIES=unzip(buf);
+  const de=RAW_ENTRIES.find(e=>e.name==='word/document.xml');
+  if(!de) throw new Error('El .docx no tiene document.xml');
+  BASE_XML=await entryText(de);
+  const r=analizar(BASE_XML);
+  PIECES=r.pieces; FLAGS=r.flags;
+  render(r.match,r.skip);
+}
+function render(match,skip){
+  const mis=FLAGS.filter(f=>f.status==='mismatch');
+  const rev=FLAGS.filter(f=>f.status==='review');
+  const R=document.getElementById('results');
+  R.classList.remove('hidden');
+  let h=`<div class="filename">📄 ${esc(FILENAME)}</div>`;
+  h+=`<div class="cards">
+    <div class="card g"><div class="n">${match}</div><div class="l">Coinciden</div></div>
+    <div class="card r"><div class="n">${mis.length}</div><div class="l">No coinciden</div></div>
+    <div class="card y"><div class="n">${rev.length}</div><div class="l">A revisar</div></div>
+    <div class="card"><div class="n">${skip}</div><div class="l">Cédulas/códigos*</div></div>
+  </div>`;
+  if(FLAGS.length===0){
+    h+=`<div class="sec"><h3>Resultado</h3><p class="ok">✓ Todos los números en letras coinciden con sus cifras. No se encontraron diferencias.</p></div>`;
+  } else {
+    h+=`<div class="sec"><h3>Diferencias encontradas</h3><table><thead><tr>
+      <th>Tipo</th><th>Número en letras</th><th>Cifra</th><th>Detalle</th></tr></thead><tbody>`;
+    for(const f of FLAGS){
+      const tag=f.status==='mismatch'?'<span class="tag r">No coincide</span>':'<span class="tag y">Revisar</span>';
+      const det=f.status==='mismatch'
+        ? `la letra dice <b>${fmt(f.wordVal)}</b> · la cifra dice <b>${fmt(f.numVal)}</b>`
+        : (f.reason||'');
+      h+=`<tr><td>${tag}</td><td>${esc(f.frase)||'<i>(en la cifra)</i>'}</td>
+        <td class="mono">(${esc(f.numeral)})</td><td>${det}</td></tr>`;
+    }
+    h+=`</tbody></table>
+      <div style="margin-top:18px"><button class="btn" id="dl">⬇ Descargar Word marcado</button></div>
+      <p class="note">En el Word marcado, el resaltado cae <b>justo encima</b> del número con problema: <b style="color:var(--rojo)">rojo</b> = la letra y la cifra dicen valores distintos (verificá contra la escritura original cuál es el correcto). <b style="color:var(--amar)">Amarillo</b> = la cifra está mal escrita o es ambigua.</p>
+    </div>`;
+  }
+  h+=`<p class="note">*Cédulas, entradas registrales, códigos (6N8-F), fechas con guion y porcentajes no se comparan automáticamente: tienen formatos especiales. Para revisarlos a fondo, pasale la escritura a Claude.<br>
+    Este verificador <b>no modifica</b> tu archivo original: solo lee y, si pedís, genera una copia aparte marcada.</p>`;
+  R.innerHTML=h;
+  const dl=document.getElementById('dl');
+  if(dl) dl.onclick=descargar;
+}
+function descargar(){
+  const xml=marcar(BASE_XML,PIECES,FLAGS);
+  const bytes=te(xml);
+  const newEntries=RAW_ENTRIES.map(e=> e.name==='word/document.xml'
+    ? {name:e.name,method:0,crc:crc32(bytes),csize:bytes.length,usize:bytes.length,comp:bytes}
+    : e);
+  const zip=buildZip(newEntries);
+  const blob=new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=FILENAME.replace(/\.docx$/i,'')+' - MARCADO.docx';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmt(v){ if(v===null||v===undefined)return '—'; return Number.isInteger(v)? v.toLocaleString('es') : v.toLocaleString('es',{minimumFractionDigits:2}); }
+
+// ===================== UI =====================
+const drop=document.getElementById('drop'), file=document.getElementById('file');
+file.onchange=e=>{ if(e.target.files[0]) go(e.target.files[0]); };
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');
+  const f=e.dataTransfer.files[0]; if(f) go(f);});
+async function go(f){
+  if(!/\.docx$/i.test(f.name)){ alert('Tiene que ser un archivo Word (.docx). Si tenés un PDF, pasalo primero a Word.'); return; }
+  try{ await procesar(f); }
+  catch(err){ alert('No pude leer el archivo: '+err.message); console.error(err); }
+}
+</script>
+</body>
+</html>
