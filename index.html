@@ -141,7 +141,7 @@
     font-size:17px;
     color:var(--navy);
     line-height:1.3;
-    padding-right:60px;
+    padding-right:0;
   }
   .card p.desc{font-size:13.5px;color:var(--muted)}
   .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
@@ -172,28 +172,6 @@
   .btn-primary:hover{background:#2E5949}
   .btn-secondary{background:#fff;color:var(--teal);border-color:var(--teal)}
   .btn-secondary:hover{background:#EAF1F2}
-  /* Sello / seal — signature element */
-  .sello{
-    position:absolute;
-    top:16px;
-    right:16px;
-    width:52px;
-    height:52px;
-    border-radius:50%;
-    border:1.5px dashed var(--lav);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    transform:rotate(-8deg);
-    color:#A8790A;
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-    text-align:center;
-    line-height:1.05;
-    flex-shrink:0;
-  }
-  .sello .l1{font-size:6.5px;letter-spacing:.06em;text-transform:uppercase}
-  .sello .l2{font-size:9px;font-weight:700;margin-top:2px}
   .empty{
     text-align:center;
     padding:60px 20px;
@@ -210,7 +188,6 @@
     h1{font-size:26px}
     .toolbar{margin-top:-16px}
     .card h3{padding-right:0}
-    .sello{position:static;transform:rotate(-4deg);align-self:flex-start;margin-bottom:-4px}
     .card-top{flex-direction:column}
   }
 </style>
@@ -404,10 +381,6 @@ function cardHTML(item){
   const tagClass = isSkill ? 'tag skill' : 'tag';
   return `
   <div class="card">
-    <div class="sello">
-      <div class="l1">Actualizado</div>
-      <div class="l2">${formatDate(item.dateAdded)}</div>
-    </div>
     <div class="card-top">
       <h3>${item.title}</h3>
     </div>
