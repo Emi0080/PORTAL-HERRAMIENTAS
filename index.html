@@ -289,6 +289,46 @@ const ITEMS = [
     tags: ["cartas", "trámites", "cobros"]
   },
   {
+    id: "generador-carta-pagare",
+    title: "Generador de Carta de Pagaré",
+    description: "Genera cartas de pagaré personalizadas con montos, plazos y datos del deudor, listas para imprimir o enviar.",
+    category: "Cobros",
+    type: "app",
+    file: "apps/cobros/generador-carta-pagare.html",
+    dateAdded: "2026-07-10",
+    tags: ["cobros", "pagaré", "cartas"]
+  },
+  {
+    id: "generador-escrituras",
+    title: "Generador de Escrituras",
+    description: "Genera borradores de escrituras a partir de un formulario guiado con los datos de las partes y el inmueble.",
+    category: "Legales / Contratos",
+    type: "app",
+    file: "apps/legales/generador-escrituras.html",
+    dateAdded: "2026-07-10",
+    tags: ["legal", "escrituras"]
+  },
+  {
+    id: "skill-lead-qualifier",
+    title: "Skill: Lead Qualifier Inmobiliario",
+    description: "Claude califica leads inmobiliarios: analiza capacidad de compra, da veredicto (califica / no califica / con condiciones) y genera PDF de presentación para el cliente.",
+    category: "Skills",
+    type: "skill",
+    file: "skills/lead-qualifier-inmobiliario.md",
+    dateAdded: "2026-07-10",
+    tags: ["skill", "ventas", "leads"]
+  },
+  {
+    id: "skill-crm-dashboard",
+    title: "Skill: CRM Leads Dashboard",
+    description: "Claude analiza el export .xlsx del CRM y genera un dashboard interactivo (seguimiento, descartados, fuentes, conclusiones) más un Excel priorizado de leads a contactar.",
+    category: "Skills",
+    type: "skill",
+    file: "skills/crm-leads-dashboard.md",
+    dateAdded: "2026-07-10",
+    tags: ["skill", "crm", "leads", "excel"]
+  },
+  {
     id: "plantilla-skill",
     title: "Plantilla de Skill (ejemplo)",
     description: "Formato base para documentar un skill de Claude: cuándo usarlo, pasos y notas. Reemplaza por los skills reales del taller.",
@@ -347,7 +387,7 @@ function cardHTML(item){
       ${item.tags.map(t=>`<span class="tag">${t}</span>`).join('')}
     </div>
     <div class="actions">
-      <a class="btn btn-primary" href="${item.file}" target="_blank" rel="noopener">${openLabel}</a> 
+      <a class="btn btn-primary" href="${item.file}" target="_blank" rel="noopener">${openLabel}</a>
     </div>
   </div>`;
 }
