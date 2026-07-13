@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Alquileres — The Group Developers</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F9F5EC;color:#1A1A1A;min-height:100vh}
+.page-header{background:#fff;border-bottom:1px solid #E5DCC8;padding:1.5rem 2rem;display:flex;align-items:center;gap:1.25rem}
+.logo-mark{width:42px;height:42px;border:1.5px solid #C9A84C;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:18px;color:#C9A84C;flex-shrink:0}
+.page-header h1{font-family:'DM Serif Display',serif;font-size:20px;font-weight:400;color:#1A1A1A;letter-spacing:.01em}
+.page-header p{font-size:12px;color:#6B7280;margin-top:2px;letter-spacing:.04em;text-transform:uppercase}
+.main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem 3rem}
+.page-title{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#8B6914;margin-bottom:1.25rem}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:1.5rem}
+.proj-card{background:#fff;border:1px solid #E5DCC8;border-radius:14px;padding:1.25rem;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+.proj-card:hover{border-color:#C9A84C;box-shadow:0 2px 12px rgba(201,168,76,.12)}
+.proj-name{font-size:13px;font-weight:500;color:#1A1A1A;margin-bottom:8px}
+.proj-meta{font-size:12px;color:#6B7280;display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
+.proj-total{font-size:20px;font-weight:600;color:#C9A84C;margin-bottom:6px}
+.proj-badge{font-size:11px;color:#9CA3AF}
+.back-btn{background:transparent;border:1px solid #E5DCC8;border-radius:10px;padding:7px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#8B6914;cursor:pointer;margin-bottom:1.25rem;display:inline-flex;align-items:center;gap:6px;transition:background .2s,color .2s}
+.back-btn:hover{background:#C9A84C;color:#fff;border-color:#C9A84C}
+.detail-header{margin-bottom:1rem}
+.detail-header h2{font-family:'DM Serif Display',serif;font-size:22px;font-weight:400;color:#1A1A1A;margin-bottom:4px}
+.detail-sub{font-size:12px;color:#6B7280}
+.summary-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem}
+.sum-card{background:#fff;border:1px solid #E5DCC8;border-radius:10px;padding:12px 14px}
+.sum-card.gold .sum-val{color:#C9A84C}
+.sum-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px}
+.sum-val{font-size:20px;font-weight:600;color:#1A1A1A}
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid #E5DCC8}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:9px 14px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#9CA3AF;background:#F9F5EC;border-bottom:1px solid #E5DCC8}
+thead th.num{text-align:right}
+tbody td{padding:10px 14px;border-bottom:1px solid #F3EDE0;color:#4B5563}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.no-debt td{opacity:0.5}
+tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody td.num.has-amount{color:#8B6914;font-weight:500}
+tbody td.total-col{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+tbody td.total-col.has-debt{color:#C9A84C}
+tbody td.obs-col{min-width:160px;max-width:220px}
+.obs-input{width:100%;font-size:12px;border:1px solid transparent;border-radius:4px;padding:4px 6px;background:transparent;color:#1A1A1A;font-family:inherit;transition:border-color .15s,background .15s}
+.obs-input:hover{border-color:#E5DCC8;background:#FDF8EF}
+.obs-input:focus{border-color:#C9A84C;background:#FDF8EF;outline:none}
+.view{display:none}
+.view.active{display:block}
+</style>
+</head>
+<body>
+<header class="page-header">
+  <div class="logo-mark">TG</div>
+  <div>
+    <h1>Dashboard de Alquileres</h1>
+    <p>The Group Developers · Saldos pendientes</p>
+  </div>
+</header>
+<main class="main">
+  <div id="view-list" class="view active">
+    <div class="page-title">Proyectos con saldos pendientes</div>
+    <div class="proj-grid" id="proj-grid"></div>
+  </div>
+  <div id="view-detail" class="view">
+    <button class="back-btn" onclick="showList()">← Todos los proyectos</button>
+    <div class="detail-header">
+      <h2 id="detail-title"></h2>
+      <div class="detail-sub" id="detail-sub"></div>
+    </div>
+    <div class="summary-bar" id="summary-bar"></div>
+    <div class="table-wrap"><table><thead id="detail-thead"></thead><tbody id="detail-tbody"></tbody></table></div>
+  </div>
+</main>
+<script>
+const DATA = {"months": ["Abril 2026", "Mayo 2026", "Junio 2026"], "projects": {"MYSTIC VALLEY TORRE 400": [{"client": "JENIFFER CAROLINA MONTERREY VALENCIA", "unit": "4B133", "months": {"Junio 2026": 1502.41}, "total": 1502.41}, {"client": "WILLIAM IBRAHIM GARCIA DIAZ", "unit": "4B171", "months": {"Junio 2026": 1155.68}, "total": 1155.68}, {"client": "EUCLIDES SALAZAR CASTILLO", "unit": "4B261", "months": {"Junio 2026": 514.53, "Mayo 2026": 250.0}, "total": 764.53}, {"client": "ALBIETH DEL CARMEN PORTUGAL URE\u00d1A", "unit": "4B101", "months": {"Junio 2026": 514.53, "Mayo 2026": 129.53}, "total": 644.06}, {"client": "KARELYNE ANETTE PINO MARQUINEZ", "unit": "4B161", "months": {"Junio 2026": 514.53, "Mayo 2026": 100.0}, "total": 614.53}, {"client": "MILDRED JOSEFINA CASTILLO", "unit": "4B143", "months": {"Junio 2026": 612.87}, "total": 612.87}, {"client": "TERESA HERCILIA VENCE PALACIOS", "unit": "4B123", "months": {"Junio 2026": 606.57}, "total": 606.57}, {"client": "VANESSA BEATRIZ RINCON", "unit": "4B103", "months": {"Junio 2026": 606.57}, "total": 606.57}, {"client": "ROXANA IBETH OTERO MONRROY", "unit": "4B254", "months": {"Junio 2026": 603.14}, "total": 603.14}, {"client": "CARLOS EDUARDO BLANQUINCETT", "unit": "4b193", "months": {"Junio 2026": 598.71}, "total": 598.71}, {"client": "JUAN FRANCISCO CARDOZO VICU\u00d1A", "unit": "4B144", "months": {"Junio 2026": 592.41}, "total": 592.41}, {"client": "RONNIEL ALFREDO LA REDONDA BRACHO", "unit": "4B93", "months": {"Junio 2026": 570.2}, "total": 570.2}, {"client": "JOSE GONZALEZ", "unit": "4B164", "months": {"Junio 2026": 570.2}, "total": 570.2}, {"client": "GISELA LOYRELIS AEDO MATAL", "unit": "4B91", "months": {"Junio 2026": 527.28}, "total": 527.28}, {"client": "SANDY IBARRA", "unit": "4B231", "months": {"Junio 2026": 527.28}, "total": 527.28}, {"client": "KEISMEL JESULY CA\u00d1AS GOMEZ", "unit": "4B141", "months": {"Junio 2026": 514.5}, "total": 514.5}, {"client": "YIMARA DEL CARMEN REMICE DIAZ", "unit": "4B61", "months": {"Mayo 2026": 490.05}, "total": 490.05}, {"client": "KAREN LIDIETH CEDE\u00d1O JIMENEZ", "unit": "4B181", "months": {"Junio 2026": 490.03}, "total": 490.03}, {"client": "PAMELA NICOLE CHAVEZ VASQUEZ", "unit": "4B32", "months": {"Junio 2026": 269.51}, "total": 269.51}, {"client": "ELIDA MARIA GARCIA LOVETO", "unit": "4B102", "months": {"Junio 2026": 252.17}, "total": 252.17}, {"client": "JORGE ANTONIO ZURITA", "unit": "4B163", "months": {"Junio 2026": 65.63}, "total": 65.63}, {"client": "FELIX GUILLERMO GONZALEZ ACOSTA", "unit": "4B252", "months": {"Junio 2026": 24.2}, "total": 24.2}, {"client": "GABRIELA ROMERO SALCEDO", "unit": "4B222", "months": {"Junio 2026": 6.0}, "total": 6.0}, {"client": "MARIVEL EDITH RODRIGUEZ FLORES", "unit": "4B64", "months": {}, "total": 0}, {"client": "JOSE ANTONIO VIDAL RIVEROS", "unit": "4B154", "months": {}, "total": 0}, {"client": "ORIEL OSVALDO ORTEGA NU\u00d1EZ", "unit": "4B114", "months": {}, "total": 0}, {"client": "ERIC ANTONIO RIVERA", "unit": "4B151", "months": {}, "total": 0}, {"client": "ALEJANDRO LOPEZ CARDONA", "unit": "4B172", "months": {}, "total": 0}, {"client": "IVAN AUGUSTO MARIN BARATE", "unit": "4B81", "months": {}, "total": 0}, {"client": "RAQUEL DEL CARMEN SCHOUWE MARTINEZ", "unit": "4B243", "months": {}, "total": 0}, {"client": "ARMANDO JAVIER PILARTE BIENDICHO", "unit": "4B214", "months": {}, "total": 0}, {"client": "VICTOR MANUEL SANCHEZ TELLEZ", "unit": "4B131", "months": {}, "total": 0}, {"client": "MARYLUZ MARIELEYKA PEREZ CERRUD", "unit": "4B191", "months": {}, "total": 0}, {"client": "JOSE ALEJANDRO CEBALLOS GUEVARA", "unit": "4B53", "months": {}, "total": 0}, {"client": "ERIC ALEJANDRO GUERRERO TU\u00d1ON", "unit": "4B204", "months": {}, "total": 0}, {"client": "MARIAN YINETH LORENZO PEREZ", "unit": "4B31", "months": {}, "total": 0}, {"client": "LUIS ENRIQUE ARAUZ RIVERA", "unit": "4B263", "months": {}, "total": 0}, {"client": "SINDY YOLIBETH GELVEZ HERNANDEZ", "unit": "4B153", "months": {}, "total": 0}, {"client": "JENIFFER ARGENTINA HERRERA YSABEL", "unit": "4B51", "months": {}, "total": 0}, {"client": "MANUEL DE JESUS ALVAREZ LASSO", "unit": "4B201", "months": {}, "total": 0}, {"client": "JULISSA ARGELIS CARRASCO PERALTA", "unit": "4B242", "months": {}, "total": 0}, {"client": "IDENIS TEJADA", "unit": "4B43", "months": {}, "total": 0}, {"client": "ITZEL GUEVARA", "unit": "4B192", "months": {}, "total": 0}, {"client": "MOISES DE JESUS VALDES", "unit": "4B73", "months": {}, "total": 0}, {"client": "MAYERLYN BERMUDEZ", "unit": "4B74", "months": {}, "total": 0}, {"client": "FRANCISCO MOGOLLON MOLINA", "unit": "4B162", "months": {}, "total": 0}, {"client": "ANA BERSY AGUIRRE GRANJA", "unit": "4B83", "months": {}, "total": 0}, {"client": "HECTOR RODOLFO BECERRA ORLER", "unit": "4B71", "months": {}, "total": 0}, {"client": "KIMBERLING CLARETH LOPEZ GONZALEZ", "unit": "4B251", "months": {}, "total": 0}, {"client": "PRISCILA ELIZABETH VEGA CORTEZ", "unit": "4B134", "months": {}, "total": 0}, {"client": "FRANCISCO ORLANDO HAYES AUBERT", "unit": "4B224", "months": {}, "total": 0}], "MYSTIC VALLEY TORRE 300": [{"client": "MICHELL MARGARET MANFRE JUSTINIANI", "unit": "3B41", "months": {"Mayo 2026": 24.5, "Junio 2026": 490.03}, "total": 514.53}, {"client": "RUBEN DARIO GOTTI QUINZADA", "unit": "3B232", "months": {"Junio 2026": 431.06}, "total": 431.06}, {"client": "JOSE LUIS RODRIGUEZ", "unit": "3B152", "months": {"Junio 2026": 264.53}, "total": 264.53}, {"client": "ORYS ONEY HERMAN DOMINGUEZ", "unit": "3B53", "months": {}, "total": 0}], "LOCALES COMERCIALES": [{"client": "YESLI YURUZ SANCHEZ PALACIOS", "unit": "LOCAL 36", "months": {"Junio 2026": 3596.19}, "total": 3596.19}, {"client": "ALTAR MEDIA MULTISERVICIOS S.A.", "unit": "HILLS LOCAL1", "months": {"Junio 2026": 1650.0, "Mayo 2026": 1575.0}, "total": 3225.0}, {"client": "IGLESIA EVANGELICA COMUNIDAD BIBLICA INTERNACIONAL", "unit": "M CITY LOCAL 7 8 9", "months": {"Junio 2026": 1246.44, "Mayo 2026": 1187.09, "Abril 2026": 137.09}, "total": 2570.62}, {"client": "JHOHENNY ALVARADO", "unit": "TOWERS LOCAL 14", "months": {"Junio 2026": 850.0, "Mayo 2026": 850.0, "Abril 2026": 350.0}, "total": 2050.0}, {"client": "ARELIS ESPINOSA", "unit": "VSH4-PARK", "months": {"Junio 2026": 880.0, "Mayo 2026": 880.0, "Abril 2026": 80.0}, "total": 1840.0}, {"client": "MELIZA CAMARENA", "unit": "M CITY LOCAL 31", "months": {"Junio 2026": 452.65, "Mayo 2026": 432.08}, "total": 884.73}, {"client": "ASHLEY YARAMI BONILLA CONTRERAS", "unit": "VSH1-PARK", "months": {"Junio 2026": 840.0}, "total": 840.0}, {"client": "TAILYN RODRIGUEZ MOJICA", "unit": "M CITY LOCAL 32", "months": {"Junio 2026": 440.0, "Mayo 2026": 270.0}, "total": 710.0}, {"client": "ROBERTO CARLOS HINESTROZA", "unit": "TOWER LOCAL 15", "months": {"Junio 2026": 600.0, "Mayo 2026": 30.0}, "total": 630.0}, {"client": "YESLI YURUZ SANCHEZ PALACIOS", "unit": "LOCAL37", "months": {"Junio 2026": 550.0}, "total": 550.0}, {"client": "GERARDIN SHATIVA DIXON SHEREWOOD", "unit": "M CITY LOCAL 10", "months": {"Junio 2026": 472.5}, "total": 472.5}, {"client": "WILLIAM ALFREDO HERRERA", "unit": "M CITY LOCAL 49", "months": {"Junio 2026": 400.0}, "total": 400.0}, {"client": "IRVING PEREZ", "unit": "M CITY LOCAL 45", "months": {"Junio 2026": 350.0}, "total": 350.0}, {"client": "RUBY PYLE", "unit": "M CITY LOCAL 24", "months": {"Junio 2026": 252.93}, "total": 252.93}, {"client": "LUZ MARIA CORDOBA CASTRO", "unit": "M CITY LOCAL 25", "months": {}, "total": 0}, {"client": "AUREA, S.A.", "unit": "VSH5-PARK", "months": {}, "total": 0}, {"client": "KAHRIM GLORIVETTE MORALES MEDINA", "unit": "M CITY LOCAL 43", "months": {}, "total": 0}, {"client": "GLINKA MONROY MENDEZ", "unit": "M CITY 47", "months": {}, "total": 0}, {"client": "YORGELIS ATENCIO", "unit": "M CITY LOCAL 23", "months": {}, "total": 0}, {"client": "PAULETTE SANCHEZ", "unit": "PH ATRIUM OFC 13-8", "months": {}, "total": 0}, {"client": "JORGE SUCHENI", "unit": "M CITY LOCAL 48", "months": {}, "total": 0}, {"client": "DAVIES FIDEL CHAVEZ CASTILLO", "unit": "M TOWER LOCAL 10", "months": {}, "total": 0}, {"client": "JAIRO CISNERO", "unit": "M CITY LOCAL 34", "months": {}, "total": 0}, {"client": "DEVIS JAVIER VARGAS ARRIETA", "unit": "VSH6-PARK", "months": {}, "total": 0}, {"client": "JESUS ROJAS", "unit": "M CITY LOCAL 28", "months": {}, "total": 0}, {"client": "GRUPO TECNIK", "unit": "PH ATRIUM OFC 24-7", "months": {}, "total": 0}], "SIGNATURE POINT": [{"client": "AURELIO GONZALEZ", "unit": "1800H", "months": {"Junio 2026": 1090.0, "Mayo 2026": 400.0}, "total": 1490.0}, {"client": "PAZIEWICZ BEATA KATARZYNA", "unit": "2000H", "months": {"Junio 2026": 1005.19, "Mayo 2026": 105.19, "Abril 2026": 45.0}, "total": 1155.38}, {"client": "ERICK LAPEIRA", "unit": "1000L", "months": {"Junio 2026": 929.95}, "total": 929.95}, {"client": "EMANUEL ELISEO AVILA TAJU", "unit": "800H", "months": {"Junio 2026": 892.5}, "total": 892.5}, {"client": "ALDHAIR OYAGA", "unit": "1200H", "months": {"Junio 2026": 666.72, "Mayo 2026": 180.64}, "total": 847.36}, {"client": "AMINTA HERNANDEZ CORDOBA", "unit": "900I", "months": {"Junio 2026": 833.07}, "total": 833.07}, {"client": "DAVID WALTERS", "unit": "1800F", "months": {"Junio 2026": 819.17}, "total": 819.17}, {"client": "DANIEL ARCIA", "unit": "700K", "months": {"Junio 2026": 744.9}, "total": 744.9}, {"client": "ASTRID SOLIS", "unit": "1800C", "months": {}, "total": 0}, {"client": "YANIRA SERRACIN", "unit": "1000I", "months": {}, "total": 0}, {"client": "ALJAIR ZINEDINE", "unit": "700J", "months": {}, "total": 0}, {"client": "ROLANDO RODRIGO SIMS", "unit": "700M", "months": {}, "total": 0}, {"client": "DEVENDRAKUMAR PATEL", "unit": "700L", "months": {}, "total": 0}, {"client": "IRENE SAAVEDRA", "unit": "2300D", "months": {}, "total": 0}, {"client": "AUGUSTO DE LA CRUZ", "unit": "800F", "months": {}, "total": 0}], "LUMIERE": [{"client": "TABATA BATISTA", "unit": "T1-29A", "months": {"Junio 2026": 1900.5}, "total": 1900.5}, {"client": "MARIAN ZUPPICHINI", "unit": "T2-9D", "months": {"Junio 2026": 1885.13}, "total": 1885.13}, {"client": "CARLOS  ANDRES LUQUE ROJAS", "unit": "T2-10D", "months": {"Junio 2026": 1885.13}, "total": 1885.13}, {"client": "BRAYAN ARRIETA", "unit": "T2-8D", "months": {"Junio 2026": 1106.55}, "total": 1106.55}, {"client": "DANAE DEL CARMEN MOYA", "unit": "T2-11D", "months": {}, "total": 0}]}};
+const MONTHS = DATA.months;
+const fmt = v => v > 0 ? '$' + v.toLocaleString('es-PA',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
+const fmtBig = v => '$' + v.toLocaleString('es-PA',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function getObs(proj,idx){try{return localStorage.getItem('obs_'+proj+'_'+idx)||''}catch(e){return ''}}
+function setObs(proj,idx,val){try{localStorage.setItem('obs_'+proj+'_'+idx,val)}catch(e){}}
+
+function projTotal(p){return DATA.projects[p].reduce((s,c)=>s+c.total,0)}
+function projDebtCount(p){return DATA.projects[p].filter(c=>c.total>0).length}
+
+function showList(){
+  document.getElementById('view-list').classList.add('active');
+  document.getElementById('view-detail').classList.remove('active');
+  document.getElementById('view-list').style.display='';
+  document.getElementById('view-detail').style.display='none';
+}
+
+function showDetail(pname){
+  document.getElementById('view-list').classList.remove('active');
+  document.getElementById('view-detail').classList.add('active');
+  document.getElementById('view-list').style.display='none';
+  document.getElementById('view-detail').style.display='';
+  document.getElementById('detail-title').textContent=pname;
+  const clients=DATA.projects[pname];
+  const grandTotal=clients.reduce((s,c)=>s+c.total,0);
+  const activeMths=MONTHS.filter(m=>clients.some(c=>c.months[m]));
+  const withDebt=clients.filter(c=>c.total>0).length;
+  const moreMonths=clients.filter(c=>Object.keys(c.months).length>1).length;
+  document.getElementById('detail-sub').textContent=clients.length+' inquilinos en total · '+withDebt+' con saldo pendiente · '+activeMths.join(', ');
+  document.getElementById('summary-bar').innerHTML=`
+    <div class="sum-card gold"><div class="sum-label">Total adeudado</div><div class="sum-val">${fmtBig(grandTotal)}</div></div>
+    <div class="sum-card"><div class="sum-label">Inquilinos con deuda</div><div class="sum-val">${withDebt}</div></div>
+    <div class="sum-card"><div class="sum-label">Total inquilinos</div><div class="sum-val">${clients.length}</div></div>
+    <div class="sum-card"><div class="sum-label">Múltiples meses</div><div class="sum-val">${moreMonths}</div></div>
+  `;
+  const shortMth=m=>{const p=m.split(' ');const a={'Enero':'Ene','Febrero':'Feb','Marzo':'Mar','Abril':'Abr','Mayo':'May','Junio':'Jun','Julio':'Jul','Agosto':'Ago','Septiembre':'Sep','Octubre':'Oct','Noviembre':'Nov','Diciembre':'Dic'};return(a[p[0]]||p[0])+' '+p[1]};
+  let hrow='<tr><th>Cliente</th><th>Unidad</th>';
+  activeMths.forEach(m=>{hrow+=`<th class="num">${shortMth(m)}</th>`});
+  hrow+='<th class="num">Total adeudado</th><th>Observaciones</th></tr>';
+  document.getElementById('detail-thead').innerHTML=hrow;
+  const tbody=document.getElementById('detail-tbody');
+  tbody.innerHTML='';
+  clients.forEach((c,i)=>{
+    const tr=document.createElement('tr');
+    if(c.total===0) tr.className='no-debt';
+    let cells=`<td style="color:#1A1A1A;font-weight:500">${c.client}</td><td>${c.unit}</td>`;
+    activeMths.forEach(m=>{const v=c.months[m]||0;cells+=`<td class="num${v>0?' has-amount':''}">${v>0?fmt(v):''}</td>`});
+    cells+=`<td class="total-col${c.total>0?' has-debt':''}">${c.total>0?fmtBig(c.total):'$0.00'}</td>`;
+    const savedObs=(getObs(pname,i)||'').replace(/"/g,'&quot;');
+    cells+=`<td class="obs-col"><input class="obs-input" type="text" placeholder="Agregar observación..." value="${savedObs}" data-proj="${pname}" data-idx="${i}"/></td>`;
+    tr.innerHTML=cells;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.obs-input').forEach(inp=>{
+    inp.addEventListener('input',e=>{setObs(e.target.dataset.proj,e.target.dataset.idx,e.target.value)});
+  });
+}
+
+function buildList(){
+  const grid=document.getElementById('proj-grid');
+  grid.innerHTML='';
+  Object.keys(DATA.projects).forEach(pname=>{
+    const total=projTotal(pname);
+    const nDebt=projDebtCount(pname);
+    const nTotal=DATA.projects[pname].length;
+    const mesesActivos=MONTHS.filter(m=>DATA.projects[pname].some(c=>c.months[m])).length;
+    const card=document.createElement('div');
+    card.className='proj-card';
+    card.innerHTML=`<div class="proj-name">${pname}</div><div class="proj-meta"><span>${nDebt} con pendiente de ${nTotal} inquilinos</span><span>${mesesActivos} mes${mesesActivos>1?'es':''} con deuda</span></div><div class="proj-total">${fmtBig(total)}</div><span class="proj-badge">Ver detalle →</span>`;
+    card.addEventListener('click',()=>showDetail(pname));
+    grid.appendChild(card);
+  });
+}
+
+showList();
+buildList();
+document.getElementById('view-detail').style.display='none';
+</script>
+</body>
+</html>
